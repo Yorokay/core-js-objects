@@ -393,16 +393,12 @@ class SelectorsChain {
     if (
       this.selectorsRank.element > this.selectorsRank[this.preventSelectorType]
     ) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
       );
     } else if (this.elementCounter === 2) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Element, id and pseudo-element should not occur more then one time inside the selector'
       );
@@ -411,59 +407,35 @@ class SelectorsChain {
     this.resultSelector += value;
     this.preventSelectorType = 'element';
 
-    const currentSelector = this.resultSelector;
-    this.resultSelector = '';
-
-    return new SelectorsChain(
-      currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
-    );
+    return this.returnSelectorsChain();
   }
 
   id(value) {
     this.idCounter += 1;
 
     if (this.selectorsRank.id > this.selectorsRank[this.preventSelectorType]) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
       );
     } else if (this.idCounter === 2) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Element, id and pseudo-element should not occur more then one time inside the selector'
       );
     }
 
     this.resultSelector += `#${value}`;
-    this.preventSelectorType = 'class';
+    this.preventSelectorType = 'id';
 
-    const currentSelector = this.resultSelector;
-    this.resultSelector = '';
-
-    return new SelectorsChain(
-      currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
-    );
+    return this.returnSelectorsChain();
   }
 
   class(value) {
     if (
       this.selectorsRank.class > this.selectorsRank[this.preventSelectorType]
     ) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
       );
@@ -471,16 +443,7 @@ class SelectorsChain {
     this.resultSelector += `.${value}`;
     this.preventSelectorType = 'class';
 
-    const currentSelector = this.resultSelector;
-    this.resultSelector = '';
-
-    return new SelectorsChain(
-      currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
-    );
+    return this.returnSelectorsChain();
   }
 
   attr(value) {
@@ -488,9 +451,7 @@ class SelectorsChain {
       this.selectorsRank.attribute >
       this.selectorsRank[this.preventSelectorType]
     ) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
       );
@@ -498,16 +459,7 @@ class SelectorsChain {
     this.resultSelector += `[${value}]`;
     this.preventSelectorType = 'attribute';
 
-    const currentSelector = this.resultSelector;
-    this.resultSelector = '';
-
-    return new SelectorsChain(
-      currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
-    );
+    return this.returnSelectorsChain();
   }
 
   pseudoClass(value) {
@@ -515,9 +467,7 @@ class SelectorsChain {
       this.selectorsRank.pseudoClass >
       this.selectorsRank[this.preventSelectorType]
     ) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
       );
@@ -525,16 +475,7 @@ class SelectorsChain {
     this.resultSelector += `:${value}`;
     this.preventSelectorType = 'pseudoClass';
 
-    const currentSelector = this.resultSelector;
-    this.resultSelector = '';
-
-    return new SelectorsChain(
-      currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
-    );
+    return this.returnSelectorsChain();
   }
 
   pseudoElement(value) {
@@ -544,16 +485,12 @@ class SelectorsChain {
       this.selectorsRank.pseudoElement >
       this.selectorsRank[this.preventSelectorType]
     ) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
       );
     } else if (this.pseudoElementCounter === 2) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Element, id and pseudo-element should not occur more then one time inside the selector'
       );
@@ -562,38 +499,51 @@ class SelectorsChain {
     this.resultSelector += `::${value}`;
     this.preventSelectorType = 'pseudoElement';
 
-    const currentSelector = this.resultSelector;
-    this.resultSelector = '';
-
-    return new SelectorsChain(
-      currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
-    );
+    return this.returnSelectorsChain();
   }
 
   combine(selector1, combinator, selector2) {
     this.resultSelector += `${selector1.stringify()} ${combinator} ${selector2.stringify()}`;
 
+    return this.returnSelectorsChain();
+  }
+
+  returnSelectorsChain() {
     const currentSelector = this.resultSelector;
+    const currentiDCounter = this.idCounter;
+    const currentPseudoElementCounter = this.pseudoElementCounter;
+    const currentElementCounter = this.elementCounter;
+    const currentPreventSelectorType = this.preventSelectorType;
+
     this.resultSelector = '';
+    this.preventSelectorType = 'startSelector';
+    this.idCounter = 0;
+    this.elementCounter = 0;
+    this.pseudoElementCounter = 0;
 
     return new SelectorsChain(
       currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
+      currentPreventSelectorType,
+      currentiDCounter,
+      currentPseudoElementCounter,
+      currentElementCounter
     );
   }
 
-  stringify() {
+  clearVariables() {
+    this.resultSelector = '';
+    this.preventSelectorType = 'startSelector';
     this.idCounter = 0;
-    this.pseudoElementCounter = 0;
     this.elementCounter = 0;
-    return this.resultSelector;
+    this.pseudoElementCounter = 0;
+  }
+
+  stringify() {
+    const currentSelector = this.resultSelector;
+
+    this.clearVariables();
+
+    return currentSelector;
   }
 }
 
@@ -613,6 +563,7 @@ const cssSelectorBuilder = {
   idCounter: 0,
   pseudoElementCounter: 0,
   elementCounter: 0,
+  // usedSelector: '',
 
   element(value) {
     this.elementCounter += 1;
@@ -620,16 +571,12 @@ const cssSelectorBuilder = {
     if (
       this.selectorsRank.element > this.selectorsRank[this.preventSelectorType]
     ) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
       );
     } else if (this.elementCounter === 2) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Element, id and pseudo-element should not occur more then one time inside the selector'
       );
@@ -638,32 +585,19 @@ const cssSelectorBuilder = {
     this.resultSelector += value;
     this.preventSelectorType = 'element';
 
-    const currentSelector = this.resultSelector;
-    this.resultSelector = '';
-
-    return new SelectorsChain(
-      currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
-    );
+    return this.returnSelectorsChain();
   },
 
   id(value) {
     this.idCounter += 1;
 
     if (this.selectorsRank.id > this.selectorsRank[this.preventSelectorType]) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
       );
     } else if (this.idCounter === 2) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Element, id and pseudo-element should not occur more then one time inside the selector'
       );
@@ -672,25 +606,14 @@ const cssSelectorBuilder = {
     this.resultSelector += `#${value}`;
     this.preventSelectorType = 'id';
 
-    const currentSelector = this.resultSelector;
-    this.resultSelector = '';
-
-    return new SelectorsChain(
-      currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
-    );
+    return this.returnSelectorsChain();
   },
 
   class(value) {
     if (
       this.selectorsRank.class > this.selectorsRank[this.preventSelectorType]
     ) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
       );
@@ -698,16 +621,7 @@ const cssSelectorBuilder = {
     this.resultSelector += `.${value}`;
     this.preventSelectorType = 'class';
 
-    const currentSelector = this.resultSelector;
-    this.resultSelector = '';
-
-    return new SelectorsChain(
-      currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
-    );
+    return this.returnSelectorsChain();
   },
 
   attr(value) {
@@ -715,9 +629,7 @@ const cssSelectorBuilder = {
       this.selectorsRank.attribute >
       this.selectorsRank[this.preventSelectorType]
     ) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
       );
@@ -725,16 +637,7 @@ const cssSelectorBuilder = {
     this.resultSelector += `[${value}]`;
     this.preventSelectorType = 'attribute';
 
-    const currentSelector = this.resultSelector;
-    this.resultSelector = '';
-
-    return new SelectorsChain(
-      currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
-    );
+    return this.returnSelectorsChain();
   },
 
   pseudoClass(value) {
@@ -742,9 +645,7 @@ const cssSelectorBuilder = {
       this.selectorsRank.pseudoClass >
       this.selectorsRank[this.preventSelectorType]
     ) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
       );
@@ -752,16 +653,7 @@ const cssSelectorBuilder = {
     this.resultSelector += `:${value}`;
     this.preventSelectorType = 'pseudoClass';
 
-    const currentSelector = this.resultSelector;
-    this.resultSelector = '';
-
-    return new SelectorsChain(
-      currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
-    );
+    return this.returnSelectorsChain();
   },
 
   pseudoElement(value) {
@@ -771,16 +663,12 @@ const cssSelectorBuilder = {
       this.selectorsRank.pseudoElement >
       this.selectorsRank[this.preventSelectorType]
     ) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
       );
     } else if (this.pseudoElementCounter === 2) {
-      this.idCounter = 0;
-      this.pseudoElementCounter = 0;
-      this.elementCounter = 0;
+      this.clearVariables();
       throw new Error(
         'Element, id and pseudo-element should not occur more then one time inside the selector'
       );
@@ -789,38 +677,51 @@ const cssSelectorBuilder = {
     this.resultSelector += `::${value}`;
     this.preventSelectorType = 'pseudoElement';
 
-    const currentSelector = this.resultSelector;
-    this.resultSelector = '';
-
-    return new SelectorsChain(
-      currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
-    );
-  },
-
-  stringify() {
-    this.idCounter = 0;
-    this.pseudoElementCounter = 0;
-    this.elementCounter = 0;
-    return this.resultSelector;
+    return this.returnSelectorsChain();
   },
 
   combine(selector1, combinator, selector2) {
     this.resultSelector += `${selector1.stringify()} ${combinator} ${selector2.stringify()}`;
 
+    return this.returnSelectorsChain();
+  },
+
+  returnSelectorsChain() {
     const currentSelector = this.resultSelector;
+    const currentiDCounter = this.idCounter;
+    const currentPseudoElementCounter = this.pseudoElementCounter;
+    const currentElementCounter = this.elementCounter;
+    const currentPreventSelectorType = this.preventSelectorType;
+
     this.resultSelector = '';
+    this.preventSelectorType = 'startSelector';
+    this.idCounter = 0;
+    this.elementCounter = 0;
+    this.pseudoElementCounter = 0;
 
     return new SelectorsChain(
       currentSelector,
-      this.preventSelectorType,
-      this.idCounter,
-      this.pseudoElementCounter,
-      this.elementCounter
+      currentPreventSelectorType,
+      currentiDCounter,
+      currentPseudoElementCounter,
+      currentElementCounter
     );
+  },
+
+  clearVariables() {
+    this.resultSelector = '';
+    this.preventSelectorType = 'startSelector';
+    this.idCounter = 0;
+    this.elementCounter = 0;
+    this.pseudoElementCounter = 0;
+  },
+
+  stringify() {
+    const currentSelector = this.resultSelector;
+
+    this.clearVariables();
+
+    return currentSelector;
   },
 };
 
