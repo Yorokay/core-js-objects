@@ -362,33 +362,465 @@ function group(array, keySelector, valueSelector) {
  *  For more examples see unit tests.
  */
 
+class SelectorsChain {
+  selectorsRank = {
+    startSelector: 100,
+    element: 6,
+    id: 5,
+    class: 4,
+    attribute: 3,
+    pseudoClass: 2,
+    pseudoElement: 1,
+  };
+
+  constructor(
+    resultSelector,
+    preventSelectorType,
+    idCounter,
+    pseudoElementCounter,
+    elementCounter
+  ) {
+    this.resultSelector = resultSelector;
+    this.preventSelectorType = preventSelectorType;
+    this.idCounter = idCounter;
+    this.pseudoElementCounter = pseudoElementCounter;
+    this.elementCounter = elementCounter;
+  }
+
+  element(value) {
+    this.elementCounter += 1;
+
+    if (
+      this.selectorsRank.element > this.selectorsRank[this.preventSelectorType]
+    ) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    } else if (this.elementCounter === 2) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+
+    this.resultSelector += value;
+    this.preventSelectorType = 'element';
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
+  }
+
+  id(value) {
+    this.idCounter += 1;
+
+    if (this.selectorsRank.id > this.selectorsRank[this.preventSelectorType]) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    } else if (this.idCounter === 2) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+
+    this.resultSelector += `#${value}`;
+    this.preventSelectorType = 'class';
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
+  }
+
+  class(value) {
+    if (
+      this.selectorsRank.class > this.selectorsRank[this.preventSelectorType]
+    ) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    this.resultSelector += `.${value}`;
+    this.preventSelectorType = 'class';
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
+  }
+
+  attr(value) {
+    if (
+      this.selectorsRank.attribute >
+      this.selectorsRank[this.preventSelectorType]
+    ) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    this.resultSelector += `[${value}]`;
+    this.preventSelectorType = 'attribute';
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
+  }
+
+  pseudoClass(value) {
+    if (
+      this.selectorsRank.pseudoClass >
+      this.selectorsRank[this.preventSelectorType]
+    ) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    this.resultSelector += `:${value}`;
+    this.preventSelectorType = 'pseudoClass';
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
+  }
+
+  pseudoElement(value) {
+    this.pseudoElementCounter += 1;
+
+    if (
+      this.selectorsRank.pseudoElement >
+      this.selectorsRank[this.preventSelectorType]
+    ) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    } else if (this.pseudoElementCounter === 2) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+
+    this.resultSelector += `::${value}`;
+    this.preventSelectorType = 'pseudoElement';
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
+  }
+
+  combine(selector1, combinator, selector2) {
+    this.resultSelector += `${selector1.stringify()} ${combinator} ${selector2.stringify()}`;
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
+  }
+
+  stringify() {
+    this.idCounter = 0;
+    this.pseudoElementCounter = 0;
+    this.elementCounter = 0;
+    return this.resultSelector;
+  }
+}
+
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  selectorsRank: {
+    startSelector: 100,
+    element: 6,
+    id: 5,
+    class: 4,
+    attribute: 3,
+    pseudoClass: 2,
+    pseudoElement: 1,
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  resultSelector: '',
+  preventSelectorType: 'startSelector',
+  idCounter: 0,
+  pseudoElementCounter: 0,
+  elementCounter: 0,
+
+  element(value) {
+    this.elementCounter += 1;
+
+    if (
+      this.selectorsRank.element > this.selectorsRank[this.preventSelectorType]
+    ) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    } else if (this.elementCounter === 2) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+
+    this.resultSelector += value;
+    this.preventSelectorType = 'element';
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    this.idCounter += 1;
+
+    if (this.selectorsRank.id > this.selectorsRank[this.preventSelectorType]) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    } else if (this.idCounter === 2) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+
+    this.resultSelector += `#${value}`;
+    this.preventSelectorType = 'id';
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    if (
+      this.selectorsRank.class > this.selectorsRank[this.preventSelectorType]
+    ) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    this.resultSelector += `.${value}`;
+    this.preventSelectorType = 'class';
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    if (
+      this.selectorsRank.attribute >
+      this.selectorsRank[this.preventSelectorType]
+    ) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    this.resultSelector += `[${value}]`;
+    this.preventSelectorType = 'attribute';
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    if (
+      this.selectorsRank.pseudoClass >
+      this.selectorsRank[this.preventSelectorType]
+    ) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    this.resultSelector += `:${value}`;
+    this.preventSelectorType = 'pseudoClass';
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    this.pseudoElementCounter += 1;
+
+    if (
+      this.selectorsRank.pseudoElement >
+      this.selectorsRank[this.preventSelectorType]
+    ) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    } else if (this.pseudoElementCounter === 2) {
+      this.idCounter = 0;
+      this.pseudoElementCounter = 0;
+      this.elementCounter = 0;
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+
+    this.resultSelector += `::${value}`;
+    this.preventSelectorType = 'pseudoElement';
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
+  },
+
+  stringify() {
+    this.idCounter = 0;
+    this.pseudoElementCounter = 0;
+    this.elementCounter = 0;
+    return this.resultSelector;
+  },
+
+  combine(selector1, combinator, selector2) {
+    this.resultSelector += `${selector1.stringify()} ${combinator} ${selector2.stringify()}`;
+
+    const currentSelector = this.resultSelector;
+    this.resultSelector = '';
+
+    return new SelectorsChain(
+      currentSelector,
+      this.preventSelectorType,
+      this.idCounter,
+      this.pseudoElementCounter,
+      this.elementCounter
+    );
   },
 };
 
